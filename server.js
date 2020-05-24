@@ -1,9 +1,7 @@
 const express = require('express')
 const app = express();
 const fs = require('fs');
-
-const csv = require('csv-parser');
-
+const csv = require('async-csv');
 const Kafka = require('node-rdkafka');
 //console.log(Kafka.features);
 //console.log(Kafka.librdkafkaVersion);
@@ -43,23 +41,48 @@ producer.on('disconnected', function (arg) {
 //starting the producer
 producer.connect();
 
-app.get('/', (req, res) => res.send('Ready to send messages!'))
+app.get('/', (req, res) => res.send('Ready to send messages!'));
+
+/**
+ * Price producer
+ */
+app.get('/price_revision', async (req, res) => {
+    const loopArr = new Array(1);
+    // for (const count of loopArr) {
+
+    // Read csv data of price upates and dispatch to respective topic
+    const csvString = await fs.readFileSync('./price_revision.csv', 'utf-8');
+    // Convert CSV string into rows:
+    const rows = await csv.parse(csvString);
+    console.log(rows, 'Read Rows CSV')
+    // Dispatch topic to kafka
+    const TOPIC = "PRICE_REVISION";
+    const partition = -1;
+    const key = 'KEY-PRICE';
+    let value = Buffer.from(JSON.stringify(rows));
+    producer.produce(TOPIC, partition, value, key);
+
+    console.log('Dipatched CSV data', rows.length);
+    // await fetch(uri);
+    await wait(5000);
+    // }
+    res.json({res: "Dispatched CSV data" , len: rows.length })
+    return;
+});
+
+/**
+ * CSV import producer
+ */
 app.get('/csv', (req, res) => {
 
-    fs.createReadStream('data.csv')
-        .pipe(csv())
-        .on('data', (row, key) => {
-            console.log(row, 'row');
-            let value = Buffer.from(JSON.stringify(row));
-            let key = "key-" + key;
-            // if partition is set to -1, librdkafka will use the default partitioner
-            const partition = -1;
-            producer.produce(topicName, partition, value, key);
-            console.log(row);
-        })
-        .on('end', () => {
-            console.log('CSV file successfully processed');
-        });
+    const TOPIC = "IMPORT_CSV";
+    const partition = -1;
+    const key = 'KEY-1';
+    let value = "UPLOAD_CSV";
+    value = Buffer.from(JSON.stringify(value));
+
+    producer.produce(TOPIC, partition, value, key);
+    return;
 
 })
 app.post('/:maxMessages', function (req, res) {
@@ -76,4 +99,16 @@ app.post('/:maxMessages', function (req, res) {
     } // end if
 }); // end app.post()
 
-app.listen(4570, () => console.log('Example app listening on port 4570!'))
+app.listen(4570, () => console.log('Example app listening on port 4570!'));
+
+//OTHER  custom helper functions
+/**
+ *
+ * @param ms
+ * @returns {Promise<unknown>}
+ */
+async function wait(ms) {
+    return new Promise(resolve => {
+        setTimeout(resolve, ms);
+    });
+}
