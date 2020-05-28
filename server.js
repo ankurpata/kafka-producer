@@ -2,6 +2,7 @@ const express = require('express')
 const app = express();
 const fs = require('fs');
 const csv = require('async-csv');
+const axios = require('axios');
 const Kafka = require('node-rdkafka');
 //console.log(Kafka.features);
 //console.log(Kafka.librdkafkaVersion);
@@ -47,6 +48,7 @@ app.get('/', (req, res) => res.send('Ready to send messages!'));
  * Price producer
  */
 app.get('/price_revision', async (req, res) => {
+
     const loopArr = new Array(1);
     // for (const count of loopArr) {
 
@@ -54,7 +56,31 @@ app.get('/price_revision', async (req, res) => {
     const csvString = await fs.readFileSync('./price_revision.csv', 'utf-8');
     // Convert CSV string into rows:
     const rows = await csv.parse(csvString);
-    console.log(rows, 'Read Rows CSV')
+    let i = 1;
+    /**
+     * Log time before dispatching
+     */
+    const logParams = {
+        "iterationName": "price_revision_insert",
+        "iterationNumber": (new Date()).getTime().toString(),
+        "numRecords": rows.length,
+        "execTime1":-1,
+        "startTime": new Date().toISOString(),
+        "endTime": new Date().toISOString(),
+        "batchNumber": 1,
+        "itemsPerBatch": rows.length,
+        "execTime2": "-1",
+        "platform":"reaction"
+    };
+    try {
+
+        //Async post and do not wait for response.
+        const {data: logRes} = await axios.post('https://us-central1-stylishopdev.cloudfunctions.net/perf-monitor', logParams);
+        console.log(rows.length, logParams, 'Read Rows CSV', ". Dispatching price revision data. logRes: ", logRes);
+    } catch (e) {
+        console.log(e.message, 'Error logging')
+    }
+
     // Dispatch topic to kafka
     const TOPIC = "PRICE_REVISION";
     const partition = -1;
@@ -63,17 +89,39 @@ app.get('/price_revision', async (req, res) => {
     producer.produce(TOPIC, partition, value, key);
 
     console.log('Dipatched CSV data', rows.length);
-    // await fetch(uri);
     await wait(5000);
-    // }
-    res.json({res: "Dispatched CSV data" , len: rows.length })
+    res.json({res: "Dispatched CSV data", len: rows.length});
     return;
 });
 
 /**
  * CSV import producer
  */
-app.get('/csv', (req, res) => {
+app.get('/csv', async(req, res) => {
+
+    /**
+     * Log time before dispatching
+     */
+    const logParams = {
+        "iterationName": "csv_produts_insert",
+        "iterationNumber": (new Date()).getTime().toString(),
+        "numRecords": 0,
+        "execTime1":-1,
+        "startTime": new Date().toISOString(),
+        "endTime": new Date().toISOString(),
+        "batchNumber": 1,
+        "itemsPerBatch": 0,
+        "execTime2": "-1",
+        "platform":"reaction"
+    };
+    try {
+
+        //Async post and do not wait for response.
+        const {data: logRes} = await axios.post('https://us-central1-stylishopdev.cloudfunctions.net/perf-monitor', logParams);
+        console.log(logParams, 'Read Rows CSV', ". Dispatching Product CSV data. logRes: ", logRes);
+    } catch (e) {
+        console.log(e.message, 'Error logging')
+    }
 
     const TOPIC = "IMPORT_CSV";
     const partition = -1;
@@ -82,6 +130,7 @@ app.get('/csv', (req, res) => {
     value = Buffer.from(JSON.stringify(value));
 
     producer.produce(TOPIC, partition, value, key);
+    res.json({res: "Dispatched CSV data"});
     return;
 
 })
