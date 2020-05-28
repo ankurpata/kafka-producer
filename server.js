@@ -99,6 +99,7 @@ app.get('/price_revision', async (req, res) => {
  */
 app.get('/csv', async(req, res) => {
 
+    const csvSize= req.query.size;
     /**
      * Log time before dispatching
      */
@@ -126,7 +127,7 @@ app.get('/csv', async(req, res) => {
     const TOPIC = "IMPORT_CSV";
     const partition = -1;
     const key = 'KEY-1';
-    let value = "UPLOAD_CSV";
+    let value = csvSize == 'big'? "UPLOAD_CSV_BIG" : "UPLOAD_CSV";
     value = Buffer.from(JSON.stringify(value));
 
     producer.produce(TOPIC, partition, value, key);
