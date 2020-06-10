@@ -1,0 +1,14 @@
+Example app listening on port 4570!
+producer ready.{"name":"rdkafka#producer-1"}
+{
+  iterationName: 'csv_produts_insert',
+  iterationNumber: '1591086715360',
+  numRecords: 0,
+  execTime1: -1,
+  startTime: '2020-06-02T08:31:55.360Z',
+  endTime: '2020-06-02T08:31:55.360Z',
+  batchNumber: 1,
+  itemsPerBatch: 0,
+  execTime2: '-1',
+  platform: 'reaction'
+} Read Rows CSV . Dispatching Product CSV data. logRes:  Hello World!

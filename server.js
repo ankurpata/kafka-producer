@@ -9,6 +9,7 @@ const Kafka = require('node-rdkafka');
 
 const producer = new Kafka.Producer({
     'metadata.broker.list': 'localhost:9092',
+    'message.max.bytes': '15728640',
     'dr_cb': true
 });
 
@@ -53,7 +54,7 @@ app.get('/price_revision', async (req, res) => {
     // for (const count of loopArr) {
 
     // Read csv data of price upates and dispatch to respective topic
-    const csvString = await fs.readFileSync('./price_revision.csv', 'utf-8');
+    const csvString = await fs.readFileSync('./price_revision2.csv', 'utf-8');
     // Convert CSV string into rows:
     const rows = await csv.parse(csvString);
     let i = 1;
